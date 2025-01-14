@@ -12,21 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://mcr.microsoft.com/v2/dotnet/sdk/tags/list
-FROM mcr.microsoft.com/dotnet/sdk:7.0.304@sha256:39006b351d036a7f06718a845280470d5511f5f2fd5af330db19a4c70ffd7a84 as builder
+# https://mcr.microsoft.com/product/dotnet/sdk
+FROM mcr.microsoft.com/dotnet/sdk:9.0.100-noble@sha256:bd0365368f46274500ebb086f491703052b8ce23e3d52d3233a23b2020730057 AS builder
 WORKDIR /app
 COPY cartservice.csproj .
-RUN dotnet restore cartservice.csproj -r linux-musl-x64
+RUN dotnet restore cartservice.csproj \
+    -r linux-x64
 COPY . .
-RUN dotnet publish cartservice.csproj -p:PublishSingleFile=true -r linux-musl-x64 --self-contained true -p:PublishTrimmed=True -p:TrimMode=Link -c release -o /cartservice --no-restore
+RUN dotnet publish cartservice.csproj \
+    -p:PublishSingleFile=true \
+    -r linux-x64 \
+    --self-contained true \
+    -p:PublishTrimmed=true \
+    -p:TrimMode=full \
+    -c release \
+    -o /cartservice
 
-# https://mcr.microsoft.com/v2/dotnet/runtime-deps/tags/list
-FROM mcr.microsoft.com/dotnet/runtime-deps:7.0.7-alpine3.18-amd64@sha256:cdaa6ee7b3bcfdc0463ced2893ab27d8bcd1be839a6ee98712da6252770b2369
+# https://mcr.microsoft.com/product/dotnet/runtime-deps
+FROM mcr.microsoft.com/dotnet/runtime-deps:9.0.0-noble-chiseled@sha256:5cc893809e2d2869e1a98c1eecc4c6ff6978d53bc3e5342014eff28a058867a4
 
 WORKDIR /app
 COPY --from=builder /cartservice .
 EXPOSE 7070
 ENV DOTNET_EnableDiagnostics=0 \
-    ASPNETCORE_URLS=http://*:7070
+    ASPNETCORE_HTTP_PORTS=7070
 USER 1000
 ENTRYPOINT ["/app/cartservice"]
